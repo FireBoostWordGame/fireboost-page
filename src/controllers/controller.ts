@@ -185,12 +185,12 @@ export default abstract class Controller
   ): void {
     try {
       const getError = error.getErrorObject();
-      res.status(getError.code).json({ error: getError });
+      res.status(getError.error.code).json(getError);
     } catch (error) {
-      const int = new InternalServerError("Error Unknow");
-      res
-        .status(int.getErrorObject().code)
-        .json({ error: int.getErrorObject() });
+      const getErrorw = new InternalServerError(
+        "Error Unknow"
+      ).getErrorObject();
+      res.status(getErrorw.error.code).json(getErrorw);
     }
   }
 }

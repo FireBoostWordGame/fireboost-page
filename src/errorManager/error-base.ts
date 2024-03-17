@@ -3,6 +3,7 @@ import {
   HttpStatusInformation,
   HttpStatusKeys,
   HttpStatusKeysMore,
+  ResponseControllerNotFound,
 } from "@/types";
 import HttpStatusManagement from "@/utils/http-status-management";
 
@@ -19,12 +20,14 @@ export abstract class ErrorEndpoint extends Error {
     this.code = HttpStatusManagement.getCode(this.codeName);
   }
 
-  getErrorObject(): ErrorReturn {
+  getErrorObject(): ResponseControllerNotFound<ErrorReturn> {
     return {
-      code: this.code.Code,
-      meaning: this.code.Meaning,
-      message: this.message,
-      cause: this.cause,
+      error: {
+        code: this.code.Code,
+        meaning: this.code.Meaning,
+        message: this.message,
+        cause: this.cause,
+      },
     };
   }
 }

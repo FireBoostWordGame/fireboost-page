@@ -1,5 +1,5 @@
-import { RoleJwt, SingJWTProps, TokenImplementation } from "@/types/token";
-import ConfigService from "@/utils/config/configService";
+import { RoleJwt, SingJWTProps, TokenImplementation } from "../../types/token";
+import ConfigService from "../../utils/config/configService";
 import * as jwt from "jsonwebtoken";
 
 export default class JWTService implements TokenImplementation<SingJWTProps> {

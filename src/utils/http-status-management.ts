@@ -3,7 +3,7 @@ import {
   HttpStatusInformation,
   HttpStatusKeys,
   HttpStatusKeysMore,
-} from "@/types";
+} from "../types";
 
 const httpStatuses: HttpStatus = {
   Continue: { Code: 100, Meaning: "Continue" },
@@ -90,11 +90,10 @@ const httpStatuses: HttpStatus = {
 };
 
 export default class HttpStatusManagement {
-  private readonly statuses = httpStatuses;
-
-  public getCode(
+  static getCode(
     key: HttpStatusKeysMore | HttpStatusKeys
   ): HttpStatusInformation {
-    return this.statuses[key];
+    const statuses = httpStatuses;
+    return statuses[key];
   }
 }

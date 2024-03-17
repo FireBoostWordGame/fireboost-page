@@ -1,10 +1,20 @@
-import type { ControllerMethod, HandlerFunctionApi } from "@/types";
+import { ErrorEndpoint, InternalServerError } from "@/errorManager";
+import type { ControllerMethod, HandlerFunctionApi } from "../types";
+import Controller from "./controller";
 
 // Function what recive controller and extract method and cast an call the function "run"
 const HandlerFunction: HandlerFunctionApi<any> = (controller) => {
   return async (req, res) => {
-    const method = req.method?.toUpperCase() as ControllerMethod | undefined;
-    await controller.run(method, req, res);
+    try {
+      const method = req.method?.toUpperCase() as ControllerMethod | undefined;
+      await controller.run(method, req, res);
+    } catch (error: unknown) {
+      if (error instanceof ErrorEndpoint) {
+        Controller.handleError(res, error);
+      } else {
+        Controller.handleError(res, new InternalServerError("Error Unknow"));
+      }
+    }
   };
 };
 

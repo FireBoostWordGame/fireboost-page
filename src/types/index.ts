@@ -1,10 +1,19 @@
 export * from "./user";
-export * from "./token";
+export * from "./token.d";
 import type { $Enums } from "@prisma/client";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 // Methods To Accept to application
 export type ControllerMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+
+//Multiple Functions Controller
+export type MultipleMethods = {
+  defaultF: ControllerFunction; // Key 'default' obligatoria
+} & Record<string, ControllerFunction>; // Resto de las keys opcionales
+
+//Type for function method Controller
+// export type FunctionsMethods = ControllerFunction;
+export type FunctionsMethods = ControllerFunction | MultipleMethods;
 
 // Function to Handler Nextjs Recive
 export type ControllerFunction<T = any> = (
@@ -33,25 +42,32 @@ export interface IUseToken {
 }
 
 // Error Message to response in NextResponse
-export type ResponseControllerNotFound = {
-  error: string;
+export type ResponseControllerNotFound<T = any> = {
+  error: T;
 };
 
+//Error return in hendlerError function
+export interface ErrorReturn {
+  code: number;
+  meaning: string;
+  message: string;
+  cause: string;
+}
 //Enum whit http Status Keys more utility
 export enum HttpStatusKeysMore {
   OK = "OK",
   CREATED = "Created",
   ACCEPTED = "Accepted",
-  NOCONTENT = "NoContent",
-  UNAUTHORIZED = "Unauthorized",
-  FORBIDDEN = "Forbidden",
-  NOTFOUND = "NotFound",
-  BADREQUEST = "BadRequest",
-  METHODNOTALLOWED = "MethodNotAllowed",
-  NOTACCEPTABLE = "NotAcceptable",
-  CONFLICT = "Conflict",
-  INTERNALSERVERERROR = "InternalServerError",
-  NOTIMPLEMENTED = "NotImplemented",
+  NOCONTENT = "NoContent", //:id
+  UNAUTHORIZED = "Unauthorized", // :d
+  FORBIDDEN = "Forbidden", //:d
+  NOTFOUND = "NotFound", //:d
+  BADREQUEST = "BadRequest", //:d
+  METHODNOTALLOWED = "MethodNotAllowed", //:d
+  NOTACCEPTABLE = "NotAcceptable", //:d
+  CONFLICT = "Conflict", //:d
+  INTERNALSERVERERROR = "InternalServerError", //:d
+  NOTIMPLEMENTED = "NotImplemented", //:d
 }
 
 //Enum whit http Status Keys

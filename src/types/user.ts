@@ -1,9 +1,14 @@
-export interface UserLogin {
+export interface UserCredentials {
   email: string;
   password: string;
 }
 
-export interface UserBase extends UserLogin {
+export type TypeVerify = "userbooster" | "user";
+
+export type UserCredentialsType = UserCredentials & { type: TypeVerify };
+export type UserCredentialsId = UserCredentials & { idAdmin: string };
+
+export interface UserBase extends UserCredentialsId {
   name: string;
 }
 

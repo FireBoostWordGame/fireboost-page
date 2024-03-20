@@ -10,21 +10,108 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model UserBooster {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  name           String         @map("name")
+  email          String         @unique @map("email")
+  password       String         @map("password")
+  contact        String         @map("contact")
+  availability   String         @map("availability")
+  discordNick    String         @map("discordNick")
+  facebook       String         @default("null") @map("facebook")
+  country        String         @map("country")
+  city           String         @map("city")
+  league         String         @map("league")
+  paypal         String         @default("null") @map("paypal")
+  completeBoosts Int            @default(0) @map("completeBoosts")
+  role           Role           @default(BOOSTER)
+  active         Boolean        @default(false)
+  RequestBoost   RequestBoost[]
+  userIdAdmin    String         @db.ObjectId
+  UserAdmin      User           @relation(fields: [userIdAdmin], references: [id])
+
+  @@map("userboosters")
+}
+
 model User {
-  id       String  @id @default(auto()) @map("_id") @db.ObjectId
-  name     String  @map("name")
-  email    String  @unique @map("email")
-  password String  @map("password")
-  role     Role    @default(USER)
-  active   Boolean @default(false)
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  name         String         @map("name")
+  email        String         @unique @map("email")
+  password     String         @map("password")
+  role         Role           @default(USER)
+  active       Boolean        @default(false)
+  RequestBoost RequestBoost[]
+  UserBooster  UserBooster[]
+
+  @@map("users")
+}
+
+model UserUpdateAdmin {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  dateIsAdmins String[] @map("dateIsAdmins")
+  userIdUpdate String   @map("userIdUpdate") @db.ObjectId
+
+  @@map("userupdateadmins")
+}
+
+model RequestBoost {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  dateRequest    DateTime     @map("dateRequest")
+  order          String       @map("order")
+  price          String       @map("price")
+  dateDelivery   String       @map("dateDelivery")
+  paymentMethod  String       @map("paymentMethod")
+  paid           String       @map("paid")
+  state          StateBoost   @default(PENDING) @map("state")
+  userId         String?      @db.ObjectId
+  userBoostersId String?      @db.ObjectId
+  User           User?        @relation(fields: [userId], references: [id])
+  UserBoosters   UserBooster? @relation(fields: [userBoostersId], references: [id])
+
+  @@map("requestsboosts")
+}
+
+model Boost {
+  id              String @id @default(auto()) @map("_id") @db.ObjectId
+  actualPosition  String @map("actualPosition")
+  desiredPosition String @map("desiredPosition")
+  gameId          String @db.ObjectId
+  game            Game   @relation(fields: [gameId], references: [id])
+
+  @@map("boosts")
+}
+
+model Position {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  position           String   @map("position")
+  increasePercentage Int      @default(40) @map("increasePercentage")
+  divitions          String[] @default([]) @map("divitions")
+  gameId             String   @db.ObjectId
+  game               Game     @relation(fields: [gameId], references: [id])
+
+  @@map("positions")
 }
 
 model Game {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  name      String     @map("name")
+  iconUrl   String     @map("iconUrl")
+  pageUrl   String     @map("pageUrl")
+  priceBase Int        @default(10) @map("priceBase")
+  Boost     Boost[]
+  Position  Position[]
+
+  @@map("games")
 }
 
 enum Role {
   USER
   ADMIN
-  EMPLOYEE
+  BOOSTER
+}
+
+enum StateBoost {
+  COMPLETE
+  PROGRESS
+  PENDING
 }

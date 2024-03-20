@@ -3,7 +3,9 @@ import TokenMiddleware from "../../../controllers/middlewares/token";
 import UserController from "../../../controllers/users";
 import type { IController } from "../../../types";
 
-const userController: IController = new TokenMiddleware(new UserController());
+const userController: IController = new TokenMiddleware(
+  new UserController(true)
+);
 
 const handler = HandlerFunction(userController);
 

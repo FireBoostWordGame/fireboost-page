@@ -1,3 +1,4 @@
+import { ConflictError } from "@/errorManager";
 import { RoleJwt, SingJWTProps, TokenImplementation } from "../../types/token";
 import ConfigService from "../../utils/config/configService";
 import * as jwt from "jsonwebtoken";
@@ -11,10 +12,18 @@ export default class JWTService implements TokenImplementation<SingJWTProps> {
         "jwt.secret_token",
         "1234654"
       );
+      // console.log({
+      //   payload,
+      //   secret,
+      //   expiresIn,
+      // });
       return jwt.sign(payload, secret, { expiresIn });
     } catch (error) {
       // TODO: Implement accerts Exception to inherate to Error
-      throw new Error("Error to generate token, please try again later");
+      throw new ConflictError(
+        "Error to generate token, please try again later",
+        "Token SingIn"
+      );
     }
   }
 
@@ -23,8 +32,8 @@ export default class JWTService implements TokenImplementation<SingJWTProps> {
       "jwt.token_time_admin",
       "12h"
     );
-    let experiesEmployee = this.configService.get<`${string}h`>(
-      "jwt.token_time_employee",
+    let experiesBooster = this.configService.get<`${string}h`>(
+      "jwt.token_time_booster",
       "4h"
     );
     let experiesUser = this.configService.get<`${string}h`>(
@@ -33,12 +42,11 @@ export default class JWTService implements TokenImplementation<SingJWTProps> {
     );
     if (!experiesAdmin.endsWith("h")) experiesAdmin = `${experiesAdmin}h`;
     if (!experiesUser.endsWith("h")) experiesUser = `${experiesUser}h`;
-    if (!experiesEmployee.endsWith("h"))
-      experiesEmployee = `${experiesEmployee}h`;
+    if (!experiesBooster.endsWith("h")) experiesBooster = `${experiesBooster}h`;
 
     const experiesForRoleJWT: Record<RoleJwt, `${string}h`> = {
       ADMIN: experiesAdmin,
-      EMPLOYEE: experiesEmployee,
+      BOOSTER: experiesBooster,
       USER: experiesUser,
     };
 

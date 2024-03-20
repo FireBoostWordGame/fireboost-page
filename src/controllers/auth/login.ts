@@ -1,6 +1,10 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import Controller from "../controller";
-import type { PayloadToken, UserLogin } from "../../types";
+import type {
+  ControllerMethod,
+  PayloadToken,
+  UserCredentialsType,
+} from "../../types";
 import md5 from "md5";
 import {
   HttpStatusKeysMore,
@@ -9,12 +13,20 @@ import {
 } from "../../types";
 import HttpStatusManagement from "@/utils/http-status-management";
 import { NotAcceptableError, UnauthorizedError } from "@/errorManager";
+import { $Enums } from "@prisma/client";
 
 export default class LoginController extends Controller {
-  acceptKeys: string[] = ["password", "email"];
+  acceptKeys: string[] = ["password", "email", "type"];
   tokenService: TokenImplementation<SingJWTProps>;
+  accessTypeMethod: Record<ControllerMethod, $Enums.Role | "any"> = {
+    GET: "any",
+    DELETE: "any",
+    PATCH: "any",
+    POST: "any",
+    PUT: "any",
+  };
   constructor(tokenService: TokenImplementation<SingJWTProps>) {
-    super();
+    super(false);
     this.tokenService = tokenService;
     // Add Method for the method run for father execute in GET request
     this.addPost(this.POST.bind(this));
@@ -25,28 +37,47 @@ export default class LoginController extends Controller {
     res: NextApiResponse<any>
   ): Promise<void> {
     try {
-      if (
-        !Object.keys(req.body)
-          .map((k) => this.acceptKeys.includes(k))
-          .every(Boolean)
-      ) {
+      if (req.body.type === undefined || req.body.type === null) {
+        req.body.type = "user";
+      }
+      if (!Object.keys(req.body).every((k) => this.acceptKeys.includes(k))) {
         throw new NotAcceptableError(
-          "Error to format body please send password, and email whit the keys",
+          `Error to format body please send ${this.acceptKeys.join(
+            ", "
+          )} whit the keys`,
           "Keys, Post Login"
         );
       }
+
       // let code = this.httpStatuses.getCode(HttpStatusKeysMore.ACCEPTED);
-      const data = req.body as UserLogin;
-      // Search user whit email
-      const user = await this.prisma.user.findFirst({
-        where: {
-          email: data.email,
-        },
-      });
+      const data = req.body as UserCredentialsType;
+      let user: {
+        email: string;
+        password: string;
+        role: $Enums.Role;
+        id: string;
+      } | null = null;
+      let userContext = "User";
+      if (data.type === "user") {
+        // Search user whit email
+        user = await this.db.user.findFirst({
+          where: {
+            email: data.email,
+          },
+        });
+      } else if (data.type === "userbooster") {
+        user = await this.db.userBooster.findFirst({
+          where: {
+            email: data.email,
+          },
+        });
+        userContext = "User Booster";
+      }
+
       if (user === null) {
         // code = this.httpStatuses.getCode(HttpStatusKeysMore.FORBIDDEN);
         throw new NotAcceptableError(
-          `Error to Get User by Email ${data.email}`,
+          `Error to Get User by Email ${data.email}, in ${userContext}`,
           "User whit Email not exist, Post Login"
         );
       }

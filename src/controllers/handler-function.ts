@@ -1,6 +1,7 @@
 import { ErrorEndpoint, InternalServerError } from "@/errorManager";
 import type { ControllerMethod, HandlerFunctionApi } from "../types";
 import Controller from "./controller";
+import { PrismaError } from "@/errorManager";
 
 // Function what recive controller and extract method and cast an call the function "run"
 const HandlerFunction: HandlerFunctionApi<any> = (controller) => {
@@ -12,7 +13,14 @@ const HandlerFunction: HandlerFunctionApi<any> = (controller) => {
       if (error instanceof ErrorEndpoint) {
         Controller.handleError(res, error);
       } else {
-        Controller.handleError(res, new InternalServerError("Error Unknow"));
+        if (error instanceof Error && error.name.includes("Prisma")) {
+          Controller.handleError(
+            res,
+            new PrismaError(error.message, `Prisma Error In: ${error.name}`)
+          );
+        } else {
+          Controller.handleError(res, new InternalServerError("Error Unknow"));
+        }
       }
     }
   };

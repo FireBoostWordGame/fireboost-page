@@ -8,3 +8,4 @@ export * from "./error-notacceptable";
 export * from "./error-notcontent";
 export * from "./error-notimplement";
 export * from "./error-unauthorized";
+export * from "./error-prisma";

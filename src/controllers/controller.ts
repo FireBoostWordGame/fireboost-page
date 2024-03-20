@@ -9,24 +9,26 @@ import {
   type ResponseControllerNotFound,
 } from "../types";
 import HttpStatusManagement from "../utils/http-status-management";
-import type { $Enums } from "@prisma/client";
+import { $Enums, PrismaClient } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next";
-import { ErrorEndpoint, InternalServerError } from "@/errorManager";
+import {
+  ErrorEndpoint,
+  InternalServerError,
+  UnauthorizedError,
+} from "@/errorManager";
 import { NoFoundError } from "@/errorManager/error-notfound";
 
 // Controller Class Base
 // The controller inherate the class PrismaService whit add all methods to query
-export default abstract class Controller
-  extends PrismaService
-  implements IController
-{
+export default abstract class Controller implements IController {
+  db: PrismaClient = PrismaService.getInstance().db;
   // We control access to each route according to the roll Enum
-  accessTypeMethod: Record<ControllerMethod, $Enums.Role | null> = {
-    GET: null,
-    DELETE: null,
-    PATCH: null,
-    POST: null,
-    PUT: null,
+  accessTypeMethod: Record<ControllerMethod, $Enums.Role | "any"> = {
+    GET: "any",
+    DELETE: "any",
+    PATCH: "any",
+    POST: "any",
+    PUT: "any",
   };
   /*
     We register the methods for the endpoint response, 
@@ -41,6 +43,7 @@ export default abstract class Controller
     PUT: this.notFound,
   };
 
+  constructor(private readonly isParams: boolean) {}
   /*
     Function to Run Handle Request 
   */
@@ -58,7 +61,15 @@ export default abstract class Controller
       if (req.url !== undefined) {
         // Get last property of url
         const splits = req.url.split("/");
-        const finishPathFormat = splits[splits.length - 1];
+        let lengthToSeparated = splits.length - 1;
+        if (this.isParams) {
+          lengthToSeparated--;
+        }
+        let finishPathFormat = splits[lengthToSeparated];
+        if (finishPathFormat.includes("?")) {
+          const splitQuery = finishPathFormat.split("?");
+          finishPathFormat = splitQuery[0];
+        }
         // Verify what the data is the instance function
         if (fn instanceof Function) {
           if (fn !== null || fn !== undefined) await fn(req, res);
@@ -69,10 +80,14 @@ export default abstract class Controller
           const func = fn[finishPathFormat];
           // if the functions is undefined send the default function in object
           if (func === undefined || func === null) {
-            await fn.defaultF(req, res);
+            const acces = fn.defaultF.accestType;
+            this.verifyAccesMethod(req, acces);
+            await fn.defaultF.method(req, res);
           } else {
+            const acces = func.accestType;
+            this.verifyAccesMethod(req, acces);
             // call function
-            await func(req, res);
+            await func.method(req, res);
           }
         }
       } else {
@@ -80,7 +95,9 @@ export default abstract class Controller
           if (fn !== null || fn !== undefined) await fn(req, res);
           else await this.notFound(req, res);
         } else {
-          await fn.defaultF(req, res);
+          const acces = fn.defaultF.accestType;
+          this.verifyAccesMethod(req, acces);
+          await fn.defaultF.method(req, res);
         }
       }
     } catch (error) {
@@ -88,16 +105,26 @@ export default abstract class Controller
     }
   }
 
-  protected addGet(fn: ControllerFunction, keyPath?: string | undefined): void {
+  protected addGet(
+    fn: ControllerFunction,
+    keyPath?: string | undefined,
+    accestType: $Enums.Role = "USER"
+  ): void {
     // Verify the KeyPath not undefined
     if (keyPath !== undefined) {
       // Verify is function
       if (this.methods.GET instanceof Function) {
         // add this function to defaultMethod and add in the keypath the Function
-        this.methods.GET = { defaultF: this.methods.GET, [keyPath]: fn };
+        this.methods.GET = {
+          defaultF: {
+            method: this.methods.GET,
+            accestType: this.accessTypeMethod.GET,
+          },
+          [keyPath]: { method: fn, accestType },
+        };
       } else {
         this.methods.GET.defaultF = this.methods.GET.defaultF;
-        this.methods.GET[keyPath] = fn;
+        this.methods.GET[keyPath] = { method: fn, accestType };
       }
     } else {
       // Add function to single method object
@@ -107,14 +134,21 @@ export default abstract class Controller
 
   protected addDelete(
     fn: ControllerFunction,
-    keyPath?: string | undefined
+    keyPath?: string | undefined,
+    accestType: $Enums.Role = "USER"
   ): void {
     if (keyPath !== undefined) {
       if (this.methods.DELETE instanceof Function) {
-        this.methods.DELETE = { defaultF: this.methods.DELETE, [keyPath]: fn };
+        this.methods.DELETE = {
+          defaultF: {
+            method: this.methods.DELETE,
+            accestType: this.accessTypeMethod.DELETE,
+          },
+          [keyPath]: { method: fn, accestType },
+        };
       } else {
         this.methods.DELETE.defaultF = this.methods.DELETE.defaultF;
-        this.methods.DELETE[keyPath] = fn;
+        this.methods.DELETE[keyPath] = { method: fn, accestType };
       }
     } else {
       this.methods.DELETE = fn;
@@ -123,14 +157,21 @@ export default abstract class Controller
 
   protected addPatch(
     fn: ControllerFunction,
-    keyPath?: string | undefined
+    keyPath?: string | undefined,
+    accestType: $Enums.Role = "USER"
   ): void {
     if (keyPath !== undefined) {
       if (this.methods.PATCH instanceof Function) {
-        this.methods.PATCH = { defaultF: this.methods.PATCH, [keyPath]: fn };
+        this.methods.PATCH = {
+          defaultF: {
+            method: this.methods.PATCH,
+            accestType: this.accessTypeMethod.PATCH,
+          },
+          [keyPath]: { method: fn, accestType },
+        };
       } else {
         this.methods.PATCH.defaultF = this.methods.PATCH.defaultF;
-        this.methods.PATCH[keyPath] = fn;
+        this.methods.PATCH[keyPath] = { method: fn, accestType };
       }
     } else {
       this.methods.PATCH = fn;
@@ -139,27 +180,44 @@ export default abstract class Controller
 
   protected addPost(
     fn: ControllerFunction,
-    keyPath?: string | undefined
+    keyPath?: string | undefined,
+    accestType: $Enums.Role = "USER"
   ): void {
     if (keyPath !== undefined) {
       if (this.methods.POST instanceof Function) {
-        this.methods.POST = { defaultF: this.methods.POST, [keyPath]: fn };
+        this.methods.POST = {
+          defaultF: {
+            method: this.methods.POST,
+            accestType: this.accessTypeMethod.POST,
+          },
+          [keyPath]: { method: fn, accestType },
+        };
       } else {
         this.methods.POST.defaultF = this.methods.POST.defaultF;
-        this.methods.POST[keyPath] = fn;
+        this.methods.POST[keyPath] = { method: fn, accestType };
       }
     } else {
       this.methods.POST = fn;
     }
   }
 
-  protected addPut(fn: ControllerFunction, keyPath?: string | undefined): void {
+  protected addPut(
+    fn: ControllerFunction,
+    keyPath?: string | undefined,
+    accestType: $Enums.Role = "USER"
+  ): void {
     if (keyPath !== undefined) {
       if (this.methods.PUT instanceof Function) {
-        this.methods.PUT = { defaultF: this.methods.PUT, [keyPath]: fn };
+        this.methods.PUT = {
+          defaultF: {
+            method: this.methods.PUT,
+            accestType: this.accessTypeMethod.PUT,
+          },
+          [keyPath]: { method: fn, accestType },
+        };
       } else {
         this.methods.PUT.defaultF = this.methods.PUT.defaultF;
-        this.methods.PUT[keyPath] = fn;
+        this.methods.PUT[keyPath] = { method: fn, accestType };
       }
     } else {
       this.methods.PUT = fn;
@@ -169,7 +227,7 @@ export default abstract class Controller
   // Funtions to response for method no implement
   private notFound(
     _: NextApiRequest,
-    res: NextApiResponse<ResponseControllerNotFound<string>>
+    __: NextApiResponse<ResponseControllerNotFound<string>>
   ): void {
     let code = HttpStatusManagement.getCode(HttpStatusKeysMore.BADREQUEST);
     throw new NoFoundError(
@@ -191,6 +249,41 @@ export default abstract class Controller
         "Error Unknow"
       ).getErrorObject();
       res.status(getErrorw.error.code).json(getErrorw);
+    }
+  }
+
+  verifyAccesMethod(req: NextApiRequest, acces: $Enums.Role | "any"): void {
+    if (req.headers["role"]) {
+      if (req.headers["role"] !== $Enums.Role.ADMIN) {
+        switch (acces) {
+          case "any":
+            break;
+          case "ADMIN":
+            throw new UnauthorizedError("Not Role Same; Need the Role = Admin");
+          case "BOOSTER":
+            if (
+              req.headers["role"] === $Enums.Role.BOOSTER ||
+              req.headers["role"] === $Enums.Role.ADMIN
+            ) {
+              break;
+            } else {
+              throw new UnauthorizedError(
+                "Not Role Same; Need the Role = Employee or Admin"
+              );
+            }
+            break;
+          case "USER":
+            if (
+              req.headers["role"] === $Enums.Role.USER ||
+              req.headers["role"] === $Enums.Role.BOOSTER ||
+              req.headers["role"] === $Enums.Role.ADMIN
+            ) {
+              break;
+            } else {
+              throw new UnauthorizedError("Your Need Register");
+            }
+        }
+      }
     }
   }
 }

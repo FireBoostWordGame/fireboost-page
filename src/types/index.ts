@@ -2,14 +2,19 @@ export * from "./user";
 export * from "./token.d";
 import type { $Enums } from "@prisma/client";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { TypeVerify } from "./user";
 
 // Methods To Accept to application
 export type ControllerMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+export type MultipleMethodSecurity = {
+  method: ControllerFunction;
+  accestType: $Enums.Role | "any";
+};
 
 //Multiple Functions Controller
 export type MultipleMethods = {
-  defaultF: ControllerFunction; // Key 'default' obligatoria
-} & Record<string, ControllerFunction>; // Resto de las keys opcionales
+  defaultF: MultipleMethodSecurity; // Key 'default' obligatoria
+} & Record<string, MultipleMethodSecurity>; // Resto de las keys opcionales
 
 //Type for function method Controller
 // export type FunctionsMethods = ControllerFunction;
@@ -45,6 +50,15 @@ export interface IUseToken {
 export type ResponseControllerNotFound<T = any> = {
   error: T;
 };
+
+export interface Pagination {
+  skip: number;
+  take: number;
+  url: {
+    currentPage: string;
+    nextPage: string;
+  };
+}
 
 //Error return in hendlerError function
 export interface ErrorReturn {

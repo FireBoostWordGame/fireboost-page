@@ -64,22 +64,23 @@ model RequestBoost {
   paid           String       @map("paid")
   state          StateBoost   @default(PENDING) @map("state")
   gameName       String?      @db.ObjectId
-  gameId         String?      @db.ObjectId
+  boostId        String?      @db.ObjectId
   userId         String?      @db.ObjectId
   userBoostersId String?      @db.ObjectId
   User           User?        @relation(fields: [userId], references: [id])
   UserBoosters   UserBooster? @relation(fields: [userBoostersId], references: [id])
-  Game           Game?        @relation(fields: [gameId], references: [id])
+  Boost          Boost?       @relation(fields: [boostId], references: [id])
 
   @@map("requestsboosts")
 }
 
 model Boost {
-  id              String @id @default(auto()) @map("_id") @db.ObjectId
-  actualPosition  String @map("actualPosition")
-  desiredPosition String @map("desiredPosition")
-  gameId          String @db.ObjectId
-  game            Game   @relation(fields: [gameId], references: [id])
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  actualPosition  String         @map("actualPosition")
+  desiredPosition String         @map("desiredPosition")
+  gameId          String         @db.ObjectId
+  game            Game           @relation(fields: [gameId], references: [id])
+  RequestBoost    RequestBoost[]
 
   @@map("boosts")
 }
@@ -96,14 +97,13 @@ model Position {
 }
 
 model Game {
-  id           String         @id @default(auto()) @map("_id") @db.ObjectId
-  name         String         @map("name")
-  iconUrl      String         @map("iconUrl")
-  pageUrl      String         @map("pageUrl")
-  priceBase    Int            @default(10) @map("priceBase")
-  Boost        Boost[]
-  Position     Position[]
-  RequestBoost RequestBoost[]
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  name      String     @map("name")
+  iconUrl   String     @map("iconUrl")
+  pageUrl   String     @map("pageUrl")
+  priceBase Int        @default(10) @map("priceBase")
+  Boost     Boost[]
+  Position  Position[]
 
   @@map("games")
 }

@@ -65,8 +65,8 @@ model RequestBoost {
   state           StateBoost   @default(PENDING) @map("state")
   actualPosition  String       @map("actualPosition")
   desiredPosition String       @map("desiredPosition")
+  gameName        String       @map("gameName")
   gameId          String?      @db.ObjectId
-  gameName        String?      @db.ObjectId
   userId          String?      @db.ObjectId
   userBoostersId  String?      @db.ObjectId
   User            User?        @relation(fields: [userId], references: [id])

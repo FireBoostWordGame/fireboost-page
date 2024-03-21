@@ -2,7 +2,6 @@ export * from "./user";
 export * from "./token.d";
 import type { $Enums } from "@prisma/client";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { TypeVerify } from "./user";
 
 // Methods To Accept to application
 export type ControllerMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";

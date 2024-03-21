@@ -55,3 +55,50 @@ export default function UsePagination(
     },
   };
 }
+
+export function UsePaginationType(
+  baseUrl: `/${string}`,
+  query: {
+    skip?: string | string[];
+    take?: string | string[];
+    page?: string | string[];
+    type?: string | string[];
+  }
+): Pagination {
+  let skip = 0;
+  let take = 10;
+  let page = 1;
+  if (query.type === undefined || Array.isArray(query.type)) {
+    query.type = "user";
+  }
+  if (Object.keys(query).every((q) => ["skip", "take", "page"].includes(q))) {
+    if (query.page !== undefined && !Array.isArray(query.page)) {
+      page = parseInt(query.page);
+    }
+    if (
+      query.skip !== undefined &&
+      query.take !== undefined &&
+      !Array.isArray(query.skip) &&
+      !Array.isArray(query.take)
+    ) {
+      skip = parseInt(query.skip);
+      take = parseInt(query.take);
+    }
+  }
+  const pagination = {
+    skip,
+    nextSkip: page * take + skip,
+    take,
+    page,
+  };
+  return {
+    skip,
+    take,
+    url: {
+      currentPage: `${baseUrl}?type=${query.type}&page=${pagination.page}&skip=${pagination.skip}&take=${pagination.take}`,
+      nextPage: `${baseUrl}?type=${query.type}&page=${
+        pagination.page + 1
+      }&skip=${pagination.nextSkip}&take=${pagination.take}`,
+    },
+  };
+}

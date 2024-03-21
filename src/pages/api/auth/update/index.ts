@@ -1,5 +1,5 @@
-import { IController } from "../../../types";
-import HandlerFunction from "../../../controllers/handler-function";
+import { IController } from "../../../../types";
+import HandlerFunction from "../../../../controllers/handler-function";
 import AdminUpdateController from "@/controllers/auth/admin-update";
 import TokenMiddleware from "@/controllers/middlewares/token";
 

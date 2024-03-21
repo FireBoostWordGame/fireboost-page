@@ -63,10 +63,13 @@ model RequestBoost {
   paymentMethod  String       @map("paymentMethod")
   paid           String       @map("paid")
   state          StateBoost   @default(PENDING) @map("state")
+  gameName       String?      @db.ObjectId
+  gameId         String?      @db.ObjectId
   userId         String?      @db.ObjectId
   userBoostersId String?      @db.ObjectId
   User           User?        @relation(fields: [userId], references: [id])
   UserBoosters   UserBooster? @relation(fields: [userBoostersId], references: [id])
+  Game           Game?        @relation(fields: [gameId], references: [id])
 
   @@map("requestsboosts")
 }
@@ -93,13 +96,14 @@ model Position {
 }
 
 model Game {
-  id        String     @id @default(auto()) @map("_id") @db.ObjectId
-  name      String     @map("name")
-  iconUrl   String     @map("iconUrl")
-  pageUrl   String     @map("pageUrl")
-  priceBase Int        @default(10) @map("priceBase")
-  Boost     Boost[]
-  Position  Position[]
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  name         String         @map("name")
+  iconUrl      String         @map("iconUrl")
+  pageUrl      String         @map("pageUrl")
+  priceBase    Int            @default(10) @map("priceBase")
+  Boost        Boost[]
+  Position     Position[]
+  RequestBoost RequestBoost[]
 
   @@map("games")
 }

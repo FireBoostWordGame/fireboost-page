@@ -1,6 +1,6 @@
 import { ControllerMethod, HttpStatusKeysMore } from "@/types";
 import Controller from "../controller";
-import { $Enums, UserUpdateAdmin } from "@prisma/client";
+import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next";
 import HttpStatusManagement from "@/utils/http-status-management";
 import {
@@ -11,6 +11,16 @@ import {
 import { isObjectId } from "@/utils";
 import { SEPARATOR_UPDATE_USER } from "@/utils/const";
 
+export type ToRole = "toAdmin" | "toUser";
+export interface RegisterCount {
+  date: string;
+  convert: ToRole;
+  idUserAdmin: string;
+}
+export interface Register {
+  idUserToUpdater: string;
+  registers: RegisterCount[];
+}
 export default class AdminUpdateController extends Controller {
   acceptKeys = ["idUpdate", "date"];
   accessTypeMethod: Record<ControllerMethod, $Enums.Role | "any"> = {
@@ -24,6 +34,7 @@ export default class AdminUpdateController extends Controller {
   constructor(isParam: boolean = false) {
     super(isParam);
     this.addPost(this.POST.bind(this));
+    this.addGet(this.GET.bind(this));
   }
 
   private async POST(
@@ -73,7 +84,7 @@ export default class AdminUpdateController extends Controller {
       }
 
       let role: $Enums.Role = $Enums.Role.ADMIN;
-      let toRole = "toAdmin";
+      let toRole: ToRole = "toAdmin";
       if (userUpdateSearch.role === $Enums.Role.ADMIN) {
         role = $Enums.Role.USER;
         toRole = "toUser";
@@ -118,6 +129,56 @@ export default class AdminUpdateController extends Controller {
         message: `User Update to ${role}`,
       });
     } catch (error) {
+      throw error;
+    }
+  }
+
+  private async GET(
+    req: NextApiRequest,
+    res: NextApiResponse<any>
+  ): Promise<void> {
+    let code = HttpStatusManagement.getCode(HttpStatusKeysMore.ACCEPTED);
+    try {
+      if (
+        req.query.id === undefined ||
+        Array.isArray(req.query.id) ||
+        req.query.id === null ||
+        !isObjectId(req.query.id)
+      ) {
+        throw new BadRequestError(
+          "Need Id For send registers",
+          "Admin Update Get Registers"
+        );
+      }
+      let id = req.query.id;
+      const register = await this.db.userUpdateAdmin.findFirst({
+        where: {
+          userIdUpdate: id,
+        },
+      });
+      if (register === null) {
+        throw new NoContentError(
+          "Register Amin Update",
+          "Admin Update Get Registers"
+        );
+      }
+      const registerFormat: Register = {
+        idUserToUpdater: register.userIdUpdate,
+        registers: register.dateIsAdmins.map((dia) => {
+          const separetee = dia.split(SEPARATOR_UPDATE_USER);
+          return {
+            date: separetee[0],
+            convert: separetee[1] as ToRole,
+            idUserAdmin: separetee[2],
+          };
+        }),
+      };
+
+      res.status(code.Code).json({
+        code: `(${code.Meaning})`,
+        register: registerFormat,
+      });
+    } catch (error: unknown) {
       throw error;
     }
   }

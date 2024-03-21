@@ -8,14 +8,32 @@ import {
 } from "../../types";
 import HttpStatusManagement from "@/utils/http-status-management";
 import {
+  BadRequestError,
   ErrorEndpoint,
   InternalServerError,
   NoContentError,
   NotAcceptableError,
+  UnauthorizedError,
 } from "@/errorManager";
-import UsePagination from "@/utils/usePagination";
+import { UsePaginationType } from "@/utils/usePagination";
+import { isObjectId } from "@/utils";
 
 export default class UserController extends Controller {
+  userKey: string[] = ["name", "email", "password"];
+  userBoostersKey: string[] = [
+    "name",
+    "email",
+    "password",
+    "contact",
+    "availability",
+    "discordNick",
+    "facebook",
+    "country",
+    "city",
+    "league",
+    "paypal",
+    "completeBoosts",
+  ];
   accessTypeMethod: Record<ControllerMethod, $Enums.Role | "any"> = {
     GET: $Enums.Role.USER,
     DELETE: "any",
@@ -27,6 +45,8 @@ export default class UserController extends Controller {
     super(isParams);
     this.addGet(this.GET.bind(this));
     this.addGet(this.GETAll.bind(this), "all", $Enums.Role.ADMIN);
+    this.addDelete(this.DELETE.bind(this));
+    this.addPatch(this.PATCH.bind(this));
   }
 
   private async GET(
@@ -34,12 +54,11 @@ export default class UserController extends Controller {
     res: NextApiResponse<any>
   ): Promise<void> {
     let code = HttpStatusManagement.getCode(HttpStatusKeysMore.ACCEPTED);
-
     try {
       if (req.query.type === undefined && Array.isArray(req.query.type)) {
         req.query.type = "user";
       }
-      console.log(req.body);
+      // console.log(req.body);
       if (req.query.id === undefined || Array.isArray(req.query.id)) {
         throw new NotAcceptableError(
           "Need Id Param for this method",
@@ -82,11 +101,11 @@ export default class UserController extends Controller {
   ): Promise<void> {
     let code = HttpStatusManagement.getCode(HttpStatusKeysMore.ACCEPTED);
     let type: TypeVerify = "user";
-    if (req.body.type !== undefined && !Array.isArray(req.body.type)) {
-      type = req.body.type as TypeVerify;
+    if (req.query.type !== undefined && !Array.isArray(req.query.type)) {
+      type = req.query.type as TypeVerify;
     }
 
-    const pagination = UsePagination("/api/users/all", req.query);
+    const pagination = UsePaginationType("/api/users/all", req.query);
     const paginationsSkipTake = {
       skip: pagination.skip,
       take: pagination.take,
@@ -94,15 +113,131 @@ export default class UserController extends Controller {
     let users: any[];
     if (type === "userbooster") {
       users = await this.db.userBooster.findMany(paginationsSkipTake);
-      console.log(type);
     } else {
       users = await this.db.user.findMany(paginationsSkipTake);
-      console.log(type);
     }
 
     return res.status(code.Code).json({
       pagination: pagination.url,
       users,
     });
+  }
+
+  private async DELETE(
+    req: NextApiRequest,
+    res: NextApiResponse<any>
+  ): Promise<void> {
+    let code = HttpStatusManagement.getCode(HttpStatusKeysMore.ACCEPTED);
+    try {
+      const id = req.query.id;
+      let type = req.query.type;
+      if (id === undefined || Array.isArray(id) || !isObjectId(id)) {
+        throw new NotAcceptableError(
+          "Need Id Param for this method",
+          "Not send Id Param"
+        );
+      }
+
+      if (type === undefined || Array.isArray(type) || !isObjectId(type)) {
+        type = "user";
+      }
+
+      const role = req.headers["role"];
+      const idUserToken = req.headers["idUser"];
+      if (role !== $Enums.Role.ADMIN) {
+        if (idUserToken !== id) {
+          throw new UnauthorizedError("Delete User; The ids not same");
+        }
+      }
+
+      if (type === "user") {
+        await this.db.user.delete({
+          where: { id },
+        });
+      } else if (type === "userbooster") {
+        await this.db.userBooster.delete({
+          where: { id },
+        });
+      } else {
+        throw new NoContentError(`Not ${type} whit this id`, `Delete User`);
+      }
+      const registersupdate = await this.db.userUpdateAdmin.findFirst({
+        where: {
+          userIdUpdate: id,
+        },
+      });
+      if (registersupdate !== null) {
+        await this.db.userUpdateAdmin.delete({
+          where: {
+            id: registersupdate.id,
+          },
+        });
+      }
+      res.status(code.Code).json({
+        code: `(${code.Meaning})`,
+        message: `${type.toUpperCase()} Deleted`,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async PATCH(
+    req: NextApiRequest,
+    res: NextApiResponse<any>
+  ): Promise<void> {
+    let code = HttpStatusManagement.getCode(HttpStatusKeysMore.ACCEPTED);
+    try {
+      const id = req.query.id;
+      let type = req.query.type;
+      if (id === undefined || Array.isArray(id) || !isObjectId(id)) {
+        throw new NotAcceptableError(
+          "Need Id Param for this method",
+          "Not send Id Param"
+        );
+      }
+      if (type === undefined || Array.isArray(type) || !isObjectId(type)) {
+        type = "user";
+      }
+
+      if (
+        Object.keys(req.body).length === 0 ||
+        req.body === undefined ||
+        req.body === null
+      ) {
+        throw new NotAcceptableError(`Need the body`, "User Update");
+      }
+      const userUpdate: Record<string, any> = {};
+      let userupdated = {};
+      if (type === "user") {
+        this.userKey.forEach((uk) => {
+          if (Object.keys(req.body).includes(uk)) {
+            userUpdate[uk] = req.body[uk];
+          }
+        });
+        userupdated = await this.db.user.update({
+          data: userUpdate as Partial<User>,
+          where: {
+            id,
+          },
+        });
+      } else if (type === "userbooster") {
+        this.userBoostersKey.forEach((uk) => {
+          if (Object.keys(req.body).includes(uk)) {
+            userUpdate[uk] = req.body[uk];
+          }
+        });
+        userupdated = await this.db.userBooster.update({
+          data: userUpdate as Partial<UserBooster>,
+          where: {
+            id,
+          },
+        });
+      } else {
+        throw new BadRequestError("Need Type", "User Update");
+      }
+
+      res.status(code.Code).json({ user: userupdated });
+    } catch (e: unknown) {}
   }
 }

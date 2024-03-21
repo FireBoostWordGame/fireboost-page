@@ -17,11 +17,12 @@ import {
   UnauthorizedError,
 } from "@/errorManager";
 import { NoFoundError } from "@/errorManager/error-notfound";
+import { dbInstance } from "@/utils/const";
 
 // Controller Class Base
 // The controller inherate the class PrismaService whit add all methods to query
 export default abstract class Controller implements IController {
-  db: PrismaClient = PrismaService.getInstance().db;
+  db: PrismaClient = dbInstance;
   // We control access to each route according to the roll Enum
   accessTypeMethod: Record<ControllerMethod, $Enums.Role | "any"> = {
     GET: "any",
@@ -62,14 +63,16 @@ export default abstract class Controller implements IController {
         // Get last property of url
         const splits = req.url.split("/");
         let lengthToSeparated = splits.length - 1;
-        if (this.isParams) {
-          lengthToSeparated--;
-        }
         let finishPathFormat = splits[lengthToSeparated];
         if (finishPathFormat.includes("?")) {
           const splitQuery = finishPathFormat.split("?");
           finishPathFormat = splitQuery[0];
         }
+        if (this.isParams) {
+          lengthToSeparated--;
+          finishPathFormat = splits[lengthToSeparated];
+        }
+
         // Verify what the data is the instance function
         if (fn instanceof Function) {
           if (fn !== null || fn !== undefined) await fn(req, res);

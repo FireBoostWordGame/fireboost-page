@@ -50,13 +50,14 @@ export type ResponseControllerNotFound<T = any> = {
   error: T;
 };
 
+export interface PaginationUrl {
+  currentPage: string;
+  nextPage: string;
+}
 export interface Pagination {
   skip: number;
   take: number;
-  url: {
-    currentPage: string;
-    nextPage: string;
-  };
+  url: PaginationUrl;
 }
 
 //Error return in hendlerError function

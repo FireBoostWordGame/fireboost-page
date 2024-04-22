@@ -50,6 +50,7 @@ export default class LoginController extends Controller {
 
     // let code = this.httpStatuses.getCode(HttpStatusKeysMore.ACCEPTED);
     const data = req.body as UserCredentialsType;
+    data.email = data.email.toLowerCase();
     let user: {
       email: string;
       password: string;

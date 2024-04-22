@@ -56,7 +56,7 @@ export default class SingUpController extends Controller {
     }
 
     const data = req.body as UserBase;
-
+    data.email = data.email.toLowerCase();
     // Search same email
     const user = await this.db.user.count({
       where: {

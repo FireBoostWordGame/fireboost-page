@@ -1,4 +1,3 @@
-import PrismaService from "@/services/prisma";
 import {
   ErrorReturn,
   FunctionsMethods,
@@ -18,6 +17,7 @@ import {
 } from "@/errorManager";
 import { NoFoundError } from "@/errorManager/error-notfound";
 import { dbInstance } from "@/utils/const";
+import SubController from "./sub-controller";
 
 // Controller Class Base
 // The controller inherate the class PrismaService whit add all methods to query
@@ -44,7 +44,14 @@ export default abstract class Controller implements IController {
     PUT: this.notFound,
   };
 
-  constructor(private readonly isParams: boolean) {}
+  constructor(public isParams: boolean) {}
+
+  /* Add Method of the Sub Controller Paths */
+  protected AddMethodsSubController(subController: SubController): void {
+    subController.isParams = this.isParams;
+    subController.AddMethods(this);
+  }
+
   /*
     Function to Run Handle Request 
   */
@@ -53,62 +60,59 @@ export default abstract class Controller implements IController {
     req: NextApiRequest,
     res: NextApiResponse<any>
   ): Promise<void> {
-    try {
-      // Verify to method send not is null or undefined
-      if (mt === null || mt === undefined) mt = "GET";
-      // Get data
-      let fn = this.methods[mt];
-      // Verify to Url not undifinde
-      if (req.url !== undefined) {
-        // Get last property of url
-        const splits = req.url.split("/");
-        let lengthToSeparated = splits.length - 1;
-        let finishPathFormat = splits[lengthToSeparated];
-        if (finishPathFormat.includes("?")) {
-          const splitQuery = finishPathFormat.split("?");
-          finishPathFormat = splitQuery[0];
-        }
-        if (this.isParams) {
-          lengthToSeparated--;
-          finishPathFormat = splits[lengthToSeparated];
-        }
+    // Verify to method send not is null or undefined
+    if (mt === null || mt === undefined) mt = "GET";
+    // Get data
+    let fn = this.methods[mt];
+    // Verify to Url not undifinde
+    if (req.url !== undefined) {
+      // Get last property of url
+      const splits = req.url.split("/");
+      let lengthToSeparated = splits.length - 1;
+      let finishPathFormat = splits[lengthToSeparated];
+      if (finishPathFormat.includes("?")) {
+        const splitQuery = finishPathFormat.split("?");
+        finishPathFormat = splitQuery[0];
+      }
+      if (this.isParams) {
+        lengthToSeparated--;
+        finishPathFormat = splits[lengthToSeparated];
+      }
 
-        // Verify what the data is the instance function
-        if (fn instanceof Function) {
-          if (fn !== null || fn !== undefined) await fn(req, res);
-          // if the function is null or undefined send not found function
-          else await this.notFound(req, res);
-        } else {
-          // Get the function in object
-          const func = fn[finishPathFormat];
-          // if the functions is undefined send the default function in object
-          if (func === undefined || func === null) {
-            const acces = fn.defaultF.accestType;
-            this.verifyAccesMethod(req, acces);
-            await fn.defaultF.method(req, res);
-          } else {
-            const acces = func.accestType;
-            this.verifyAccesMethod(req, acces);
-            // call function
-            await func.method(req, res);
-          }
-        }
+      // Verify what the data is the instance function
+      if (fn instanceof Function) {
+        if (fn !== null || fn !== undefined) await fn(req, res);
+        // if the function is null or undefined send not found function
+        else this.notFound(req, res);
       } else {
-        if (fn instanceof Function) {
-          if (fn !== null || fn !== undefined) await fn(req, res);
-          else await this.notFound(req, res);
-        } else {
+        // Get the function in object
+        const func = fn[finishPathFormat];
+        // if the functions is undefined send the default function in object
+        if (func === undefined || func === null) {
+          console.log("Undefined");
           const acces = fn.defaultF.accestType;
           this.verifyAccesMethod(req, acces);
           await fn.defaultF.method(req, res);
+        } else {
+          const acces = func.accestType;
+          this.verifyAccesMethod(req, acces);
+          // call function
+          await func.method(req, res);
         }
       }
-    } catch (error) {
-      throw error;
+    } else {
+      if (fn instanceof Function) {
+        if (fn !== null || fn !== undefined) await fn(req, res);
+        else await this.notFound(req, res);
+      } else {
+        const acces = fn.defaultF.accestType;
+        this.verifyAccesMethod(req, acces);
+        await fn.defaultF.method(req, res);
+      }
     }
   }
 
-  protected addGet(
+  public addGet(
     fn: ControllerFunction,
     keyPath?: string | undefined,
     accestType: $Enums.Role = "USER"
@@ -135,7 +139,7 @@ export default abstract class Controller implements IController {
     }
   }
 
-  protected addDelete(
+  public addDelete(
     fn: ControllerFunction,
     keyPath?: string | undefined,
     accestType: $Enums.Role = "USER"
@@ -158,7 +162,7 @@ export default abstract class Controller implements IController {
     }
   }
 
-  protected addPatch(
+  public addPatch(
     fn: ControllerFunction,
     keyPath?: string | undefined,
     accestType: $Enums.Role = "USER"
@@ -181,7 +185,7 @@ export default abstract class Controller implements IController {
     }
   }
 
-  protected addPost(
+  public addPost(
     fn: ControllerFunction,
     keyPath?: string | undefined,
     accestType: $Enums.Role = "USER"
@@ -204,7 +208,7 @@ export default abstract class Controller implements IController {
     }
   }
 
-  protected addPut(
+  public addPut(
     fn: ControllerFunction,
     keyPath?: string | undefined,
     accestType: $Enums.Role = "USER"
@@ -260,7 +264,8 @@ export default abstract class Controller implements IController {
       if (req.headers["role"] !== $Enums.Role.ADMIN) {
         switch (acces) {
           case "any":
-            break;
+            throw new UnauthorizedError("Not Role Same; Need a Role");
+
           case "ADMIN":
             throw new UnauthorizedError("Not Role Same; Need the Role = Admin");
           case "BOOSTER":
@@ -274,7 +279,7 @@ export default abstract class Controller implements IController {
                 "Not Role Same; Need the Role = Employee or Admin"
               );
             }
-            break;
+
           case "USER":
             if (
               req.headers["role"] === $Enums.Role.USER ||

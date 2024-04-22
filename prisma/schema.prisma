@@ -76,6 +76,7 @@ model RequestBoost {
   @@map("requestsboosts")
 }
 
+// Position to generate to Game
 model Position {
   id                 String   @id @default(auto()) @map("_id") @db.ObjectId
   position           String   @map("position")

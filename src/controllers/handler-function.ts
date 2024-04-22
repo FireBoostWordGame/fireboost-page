@@ -1,7 +1,10 @@
-import { ErrorEndpoint, InternalServerError } from "@/errorManager";
+import {
+  ErrorEndpoint,
+  InternalServerError,
+  PrismaError,
+} from "@/errorManager";
 import type { ControllerMethod, HandlerFunctionApi } from "../types";
 import Controller from "./controller";
-import { PrismaError } from "@/errorManager";
 
 // Function what recive controller and extract method and cast an call the function "run"
 const HandlerFunction: HandlerFunctionApi<any> = (controller) => {
@@ -9,7 +12,9 @@ const HandlerFunction: HandlerFunctionApi<any> = (controller) => {
     try {
       const method = req.method?.toUpperCase() as ControllerMethod | undefined;
       await controller.run(method, req, res);
+      console.log("EEEEE");
     } catch (error: unknown) {
+      console.log("Error");
       if (error instanceof ErrorEndpoint) {
         Controller.handleError(res, error);
       } else {

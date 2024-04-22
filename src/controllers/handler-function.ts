@@ -12,9 +12,7 @@ const HandlerFunction: HandlerFunctionApi<any> = (controller) => {
     try {
       const method = req.method?.toUpperCase() as ControllerMethod | undefined;
       await controller.run(method, req, res);
-      console.log("EEEEE");
     } catch (error: unknown) {
-      console.log("Error");
       if (error instanceof ErrorEndpoint) {
         Controller.handleError(res, error);
       } else {

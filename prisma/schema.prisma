@@ -56,6 +56,8 @@ model UserUpdateAdmin {
 
 model RequestBoost {
   id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  active          Boolean      @default(true) @map("active")
+  idRequest       String       @map("idRequest") // Id For Client
   dateRequest     DateTime     @map("dateRequest")
   order           String       @map("order")
   price           String       @map("price")
@@ -65,7 +67,6 @@ model RequestBoost {
   state           StateBoost   @default(PENDING) @map("state")
   actualPosition  String       @map("actualPosition")
   desiredPosition String       @map("desiredPosition")
-  gameName        String       @map("gameName")
   gameId          String?      @db.ObjectId
   userId          String?      @db.ObjectId
   userBoostersId  String?      @db.ObjectId

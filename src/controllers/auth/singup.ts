@@ -113,7 +113,8 @@ export default class SingUpController extends Controller {
 
       userCreate = await this.db.userBooster.create({
         data: {
-          ...data,
+          name: data.name,
+          email: data.email,
           active: true,
           role: $Enums.Role.BOOSTER,
           contact: "",

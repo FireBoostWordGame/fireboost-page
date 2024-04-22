@@ -89,7 +89,6 @@ export default abstract class Controller implements IController {
         const func = fn[finishPathFormat];
         // if the functions is undefined send the default function in object
         if (func === undefined || func === null) {
-          console.log("Undefined");
           const acces = fn.defaultF.accestType;
           this.verifyAccesMethod(req, acces);
           await fn.defaultF.method(req, res);
